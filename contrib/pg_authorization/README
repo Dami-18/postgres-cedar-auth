@@ -1,0 +1,290 @@
+pg_authorization - External Authorization Plugin for PostgreSQL
+==============================================================
+
+This extension externalizes PostgreSQL's authorization layer, allowing
+authorization decisions to be delegated to external policy engines like
+Cedar, OPA, or custom authorization services.
+
+Features
+--------
+
+1. Authorization Enforcement
+   - Intercepts all DML permission checks (SELECT, INSERT, UPDATE, DELETE)
+   - Intercepts DDL operations via object_access_hook
+   - Intercepts utility commands via ProcessUtility_hook
+   - Sends authorization requests to Cedar Agent in Cedar-compatible format
+
+2. Entity Synchronization
+   - Automatically syncs PostgreSQL objects to Cedar Agent when created/altered/dropped
+   - Supports: Users, Tables, Schemas, Databases, Functions
+   - Eliminates the need for a separate DDL audit plugin
+
+Cedar Agent API Integration
+---------------------------
+
+The extension communicates with Cedar Agent using the following endpoints:
+
+1. Authorization: POST /v1/is_authorized
+   Request format:
+   {
+     "principal": "User::\"username\"",
+     "action": "Action::\"Select\"",
+     "resource": "Table::\"schema.tablename\"",
+     "context": {
+       "day": "mon",
+       "date": 20250101,
+       "time": 120000
+     }
+   }
+
+   Expected response:
+   {"decision": "Allow"} or {"decision": "Deny"}
+
+2. Entity Sync (Create/Update): PUT /v1/data/single/{entity_id}
+   Request format:
+   [{"uid":{"type":"Table","id":"public.mytable"},"attrs":{},"parents":[]}]
+
+3. Entity Sync (Delete): DELETE /v1/data/single/{entity_id}
+
+Installation
+------------
+
+1. Build PostgreSQL with the extension:
+   cd contrib/pg_authorization
+   make
+   make install
+
+2. Add to postgresql.conf:
+   shared_preload_libraries = 'pg_authorization'
+
+3. Restart PostgreSQL
+
+4. Create the extension in your database:
+   CREATE EXTENSION pg_authorization;
+
+Configuration
+-------------
+
+All configuration is done via GUC variables (can be set in postgresql.conf
+or via SET commands):
+
+pg_authorization.cedar_agent_url (string)
+    Base URL of the Cedar Agent service.
+    Example: 'http://localhost:8180'
+    Default: '' (disabled)
+
+pg_authorization.timeout (integer)
+    Timeout for Cedar Agent requests in milliseconds.
+    Default: 5000 (5 seconds)
+    Range: 100-60000
+
+pg_authorization.enabled (boolean)
+    Enable or disable Cedar authorization checks.
+    Default: true
+
+pg_authorization.entity_sync_enabled (boolean)
+    Enable or disable entity synchronization to Cedar Agent.
+    Default: true
+
+pg_authorization.log_decisions (boolean)
+    Log authorization decisions and Cedar Agent requests.
+    Default: false
+
+pg_authorization.use_https (boolean)
+    Enable HTTPS for Cedar Agent communication.
+    Default: false
+
+pg_authorization.ssl_verify_peer (boolean)
+    Enable SSL certificate verification when using HTTPS.
+    Set to true for production with valid certificates.
+    Set to false to allow self-signed certificates (useful for dev/testing).
+    Default: false
+
+pg_authorization.ssl_cert_file (string)
+    Path to client certificate file for mutual TLS (mTLS) authentication.
+    Example: '/path/to/client.crt'
+    Default: '' (no client certificate)
+
+pg_authorization.ssl_key_file (string)
+    Path to client private key file for mutual TLS (mTLS) authentication.
+    Example: '/path/to/client.key'
+    Default: '' (no client key)
+    Note: Ensure the key file is readable only by the postgres user.
+
+Usage Example
+-------------
+
+-- Configure Cedar Agent URL
+ALTER SYSTEM SET pg_authorization.cedar_agent_url = 'http://localhost:8180';
+SELECT pg_reload_conf();
+
+-- Enable logging for debugging
+SET pg_authorization.log_decisions = true;
+
+-- Check if plugin is enabled
+SELECT pg_authorization_is_enabled();
+
+-- View current configuration
+SELECT * FROM pg_authorization_config;
+
+-- View statistics
+SELECT * FROM pg_authorization_statistics;
+
+-- Reset statistics
+SELECT pg_authorization_reset_stats();
+
+HTTPS Configuration
+-------------------
+
+The extension supports HTTPS for secure communication with Cedar Agent.
+HTTPS is optional and disabled by default for backward compatibility.
+
+Basic HTTPS (self-signed certificates):
+
+  -- Enable HTTPS without certificate verification (useful for dev/testing)
+  ALTER SYSTEM SET pg_authorization.cedar_agent_url = 'https://localhost:8443';
+  ALTER SYSTEM SET pg_authorization.use_https = true;
+  SELECT pg_reload_conf();
+
+HTTPS with Certificate Verification (production):
+
+  -- Enable HTTPS with full certificate verification
+  ALTER SYSTEM SET pg_authorization.cedar_agent_url = 'https://cedar.example.com';
+  ALTER SYSTEM SET pg_authorization.use_https = true;
+  ALTER SYSTEM SET pg_authorization.ssl_verify_peer = true;
+  SELECT pg_reload_conf();
+
+  Note: The Cedar Agent must present a valid certificate signed by a trusted CA
+  when ssl_verify_peer is enabled. System CA certificates are used for validation.
+
+HTTPS with Mutual TLS (maximum security):
+
+  -- Enable HTTPS with mTLS for client authentication
+  ALTER SYSTEM SET pg_authorization.cedar_agent_url = 'https://cedar.example.com';
+  ALTER SYSTEM SET pg_authorization.use_https = true;
+  ALTER SYSTEM SET pg_authorization.ssl_verify_peer = true;
+  ALTER SYSTEM SET pg_authorization.ssl_cert_file = '/etc/postgres/certs/client.crt';
+  ALTER SYSTEM SET pg_authorization.ssl_key_file = '/etc/postgres/certs/client.key';
+  SELECT pg_reload_conf();
+
+  Security Notes:
+  - Ensure the private key file has restrictive permissions (0600)
+  - The key file should be readable only by the postgres user
+  - Both certificate and key files must be in PEM format
+
+Progressive Security Setup:
+
+  You can start with HTTP and progressively add security:
+  
+  1. Development: HTTP
+     cedar_agent_url = 'http://localhost:8180'
+     use_https = false (default)
+  
+  2. Testing with self-signed certs: HTTPS (unverified)
+     cedar_agent_url = 'https://localhost:8443'
+     use_https = true
+     ssl_verify_peer = false (default)
+  
+  3. Staging/Production: HTTPS (verified)
+     cedar_agent_url = 'https://cedar.example.com'
+     use_https = true
+     ssl_verify_peer = true
+  
+  4. High Security: HTTPS + mTLS
+     cedar_agent_url = 'https://cedar.example.com'
+     use_https = true
+     ssl_verify_peer = true
+     ssl_cert_file = '/path/to/client.crt'
+     ssl_key_file = '/path/to/client.key'
+
+-- Manually sync an entity
+SELECT pg_authorization_sync_entity('Table', 'public.mytable');
+SELECT pg_authorization_sync_entity('User', 'alice');
+
+Entity Types
+------------
+
+The following entity types are automatically synced:
+
+- User: PostgreSQL roles/users
+- Table: Relations (tables, views)
+- Schema: Namespaces
+- Database: Databases
+- Function: Functions and procedures
+
+Cedar Policy Example
+--------------------
+
+Here's an example Cedar policy that works with this extension:
+
+permit(
+    principal == User::"alice",
+    action == Action::"Select",
+    resource == Table::"public.employees"
+);
+
+permit(
+    principal in User::"admins",
+    action in [Action::"Select", Action::"Insert", Action::"Update", Action::"Delete"],
+    resource in Schema::"public"
+);
+
+forbid(
+    principal,
+    action,
+    resource
+) when {
+    context.day == "sat" || context.day == "sun"
+};
+
+Statistics
+----------
+
+The extension tracks the following statistics:
+
+Authorization:
+- auth_requests: Total authorization requests sent
+- auth_grants: Requests that returned Allow
+- auth_denies: Requests that returned Deny
+- auth_ignores: Requests that returned Ignore (fallback to native)
+- auth_errors: Requests that failed (network error, timeout, etc.)
+
+Entity Sync:
+- sync_requests: Total entity sync requests sent
+- sync_successes: Successful sync operations
+- sync_failures: Failed sync operations
+
+Troubleshooting
+---------------
+
+1. "permission denied by Cedar authorization policy"
+   - Check that the Cedar Agent is running and accessible
+   - Verify the cedar_agent_url is correct
+   - Check Cedar policies allow the operation
+   - Enable log_decisions to see the exact request/response
+
+2. Entity sync not working
+   - Verify entity_sync_enabled is true
+   - Check Cedar Agent logs for errors
+   - Ensure the Cedar Agent /v1/data endpoint is accessible
+
+3. Performance issues
+   - Reduce timeout value
+   - Ensure Cedar Agent is running locally or on fast network
+   - Consider disabling authorization for batch operations
+
+Dependencies
+------------
+
+- libcurl: For HTTP communication with Cedar Agent
+- PostgreSQL 16+: Uses modern hook APIs
+
+Author
+------
+
+PostgreSQL Global Development Group
+
+License
+-------
+
+PostgreSQL License

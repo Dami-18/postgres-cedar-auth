@@ -1,0 +1,42 @@
+# Git files
+.git
+.gitignore
+
+# Build artifacts
+build/
+*.o
+*.so
+*.a
+
+# Documentation (not needed for full docs, but some needed for help headers)
+*.md
+*.rst
+# doc/ removed as it's needed for sql_help.h
+docs/
+
+# Test files
+test/
+tests/
+*.test
+
+# Development files
+.editorconfig
+.cirrus.*
+*.star
+
+# Docker files (avoid recursive copying)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Build scripts
+build_and_push.sh
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db

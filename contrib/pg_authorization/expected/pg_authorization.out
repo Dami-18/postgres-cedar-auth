@@ -1,0 +1,38 @@
+/* Test the pg_authorization extension */
+CREATE EXTENSION pg_authorization;
+-- Check if enabled (should be true by default)
+SELECT pg_authorization_is_enabled();
+ pg_authorization_is_enabled 
+-----------------------------
+ t
+(1 row)
+
+-- Check statistics (should be all zeros initially)
+SELECT * FROM pg_authorization_statistics;
+ auth_requests | auth_grants | auth_denies | auth_ignores | auth_errors | sync_requests | sync_successes | sync_failures 
+---------------+-------------+-------------+--------------+-------------+---------------+----------------+---------------
+             0 |           0 |           0 |            0 |           0 |             0 |              0 |             0
+(1 row)
+
+-- Check configuration
+SELECT * FROM pg_authorization_config;
+ cedar_agent_url | timeout_ms | cedar_namespace | authorization_enabled | entity_sync_enabled | log_decisions 
+-----------------+------------+-----------------+-----------------------+---------------------+---------------
+                 | 5s         |                 | on                    | on                  | on
+(1 row)
+
+-- Test resetting stats
+SELECT pg_authorization_reset_stats();
+ pg_authorization_reset_stats 
+------------------------------
+ 
+(1 row)
+
+SELECT * FROM pg_authorization_statistics;
+ auth_requests | auth_grants | auth_denies | auth_ignores | auth_errors | sync_requests | sync_successes | sync_failures 
+---------------+-------------+-------------+--------------+-------------+---------------+----------------+---------------
+             0 |           0 |           0 |            0 |           0 |             0 |              0 |             0
+(1 row)
+
+-- Clean up
+DROP EXTENSION pg_authorization;

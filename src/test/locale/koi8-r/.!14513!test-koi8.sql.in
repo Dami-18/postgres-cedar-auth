@@ -1,0 +1,1 @@
+COPY usastates FROM stdin WITH DELIMITER '|';

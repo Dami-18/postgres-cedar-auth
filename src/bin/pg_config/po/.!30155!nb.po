@@ -1,0 +1,24 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PostgreSQL 8.1\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2013-09-05 22:56-0400\n"
+"Last-Translator: Erik B. Ottesen <erikbagg@stud.ntnu.no>\n"
+"Language-Team: \n"
+"Language: nb\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=iso-8859-1\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Norwegian Bokmal\n"
+"X-Poedit-Country: NORWAY\n"
+
+#: pg_config.c:241
+#: pg_config.c:257
+#: pg_config.c:273
+#: pg_config.c:289
+#: pg_config.c:305
+#: pg_config.c:321
+#: pg_config.c:337
+#: pg_config.c:353
+#, c-format
+msgid "not recorded\n"

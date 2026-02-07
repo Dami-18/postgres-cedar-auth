@@ -1,0 +1,7 @@
+# pg_authorization extension
+comment = 'External authorization plugin for PostgreSQL'
+default_version = '1.0'
+module_pathname = '$libdir/pg_authorization'
+relocatable = true
+trusted = false
+

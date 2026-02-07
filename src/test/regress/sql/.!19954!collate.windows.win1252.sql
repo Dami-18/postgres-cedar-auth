@@ -1,0 +1,59 @@
+/*
+ * This test is meant to run on Windows systems that has successfully
+ * run pg_import_system_collations().  Also, the database must have
+ * WIN1252 encoding, because of the locales' own encodings.  Because
+ * of this, some test are lost from UTF-8 version, such as Turkish
+ * dotted and undotted 'i'.
+ */
+SELECT getdatabaseencoding() <> 'WIN1252' OR
+       (SELECT count(*) FROM pg_collation WHERE collname IN ('de_DE', 'en_US', 'sv_SE') AND collencoding = pg_char_to_encoding('WIN1252')) <> 3 OR
+       (version() !~ 'Visual C\+\+' AND version() !~ 'mingw32' AND version() !~ 'windows')
+       AS skip_test \gset
+\if :skip_test
+\quit
+\endif
+
+SET client_encoding TO WIN1252;
+
+CREATE SCHEMA collate_tests;
+SET search_path = collate_tests;
+
+
+CREATE TABLE collate_test1 (
+    a int,
+    b text COLLATE "en_US" NOT NULL
+);
+
+\d collate_test1
+
+CREATE TABLE collate_test_fail (
+    a int,
+    b text COLLATE "ja_JP.eucjp"
+);
+
+CREATE TABLE collate_test_fail (
+    a int,
+    b text COLLATE "foo"
+);
+
+CREATE TABLE collate_test_fail (
+    a int COLLATE "en_US",
+    b text
+);
+
+CREATE TABLE collate_test_like (
+    LIKE collate_test1
+);
+
+\d collate_test_like
+
+CREATE TABLE collate_test2 (
+    a int,
+    b text COLLATE "sv_SE"
+);
+
+CREATE TABLE collate_test3 (
+    a int,
+    b text COLLATE "C"
+);
+

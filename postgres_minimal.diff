@@ -1,0 +1,11 @@
+ contrib/Makefile                                   |    1 +
+ contrib/meson.build                                |    1 +
+ contrib/pg_authorization/Makefile                  |   26 +
+ contrib/pg_authorization/README                    |  205 +++
+ contrib/pg_authorization/meson.build               |   33 +
+ contrib/pg_authorization/pg_authorization--1.0.sql |   69 ++
+ contrib/pg_authorization/pg_authorization.c        | 1305 ++++++++++++++++++++
+ contrib/pg_authorization/pg_authorization.control  |    7 +
+ src/backend/catalog/aclchk.c                       |  167 +++
+ src/include/utils/authorization_hook.h             |  146 +++
+ 10 files changed, 1960 insertions(+)
