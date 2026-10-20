@@ -1,0 +1,6 @@
+name = "arcade"
+version = "0.1.0"
+defaultTargets = ["Arcade"]
+
+[[lean_lib]]
+name = "Arcade"
