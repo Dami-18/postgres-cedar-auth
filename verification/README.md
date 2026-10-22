@@ -23,6 +23,10 @@ Toolchain: Lean 4.35.0 (pinned in `lean-toolchain`). No external dependencies.
 ## Assumptions
 
 * `Env.WellFormed`: native `aclmask()` returns no bits outside `mask`.
+* Proofs that use `bv_decide` (`hookBlock_additive`, `hookBlock_sound`,
+  `pgClass_catalog_write_protected`) also depend on a `_native.bv_decide` axiom:
+  the SAT certificate is checked by compiled code, so they trust the Lean
+  compiler. Check with `#print axioms <theorem>`.
 
 ## Abstractions
 
@@ -35,12 +39,14 @@ Toolchain: Lean 4.35.0 (pinned in `lean-toolchain`). No external dependencies.
 
 | Theorem | File | Status |
 |---|---|---|
-| `hookBlock_additive` | HookBlock | sorry |
-| `hookBlock_sound` | HookBlock | sorry |
-| `hookBlock_fail_closed` | HookBlock | sorry |
-| `hookBlock_called_iff` | HookBlock | sorry |
-| `hookBlock_info` | HookBlock | sorry |
-| `pgClass_superuser_no_hook` | Functions | sorry |
-| `pgClass_catalog_write_protected` | Functions | sorry |
-| `pgAttribute_no_acl_never_asks` | Functions | sorry |
-| `pgType_hook_sees_original_oid` | Functions | sorry |
+| `hookBlock_additive` | HookBlock | proved |
+| `hookBlock_sound` | HookBlock | proved |
+| `hookBlock_fail_closed` | HookBlock | proved |
+| `hookBlock_called_iff` | HookBlock | proved |
+| `hookBlock_info` | HookBlock | proved |
+| `pgClass_superuser_no_hook` | Functions | proved |
+| `hookBlock_no_new_write_bits` (helper) | Functions | proved |
+| `catalog_strip_clears` (helper) | Functions | proved |
+| `pgClass_catalog_write_protected` | Functions | proved |
+| `pgAttribute_no_acl_never_asks` | Functions | proved |
+| `pgType_hook_sees_original_oid` | Functions | proved |

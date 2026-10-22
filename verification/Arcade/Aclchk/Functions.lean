@@ -105,7 +105,30 @@ def objectAclmask (e : Env) (classid : ClassId) (obj role : Oid)
 theorem pgClass_superuser_no_hook (e : Env) (t role : Oid) (m : AclMode) (h : How)
     (hs : e.superuser role = true) :
     (pgClassAclmask e t role m h).2 = none := by
-  sorry
+  unfold pgClassAclmask
+  split
+  · rfl
+  · simp [hs]
+
+/-- If the mask has no catalog write bits, the hook block cannot add any
+    (uses `hookBlock_sound` and the `WellFormed` assumption). -/
+theorem hookBlock_no_new_write_bits (e : Env) (he : e.WellFormed) (k : AclKey) (role : Oid)
+    (h : How) (m : AclMode) (info : AuthInfo) (hm : m &&& catalogWriteBits = 0) :
+    (hookBlock e info (e.aclmask k role m h) m h).1 &&& catalogWriteBits = 0 := by
+  have hs := hookBlock_sound e info (e.aclmask k role m h) m h
+  have hw := he k role m h
+  bv_decide
+
+/-- The mask stripping at aclchk.c:3573–3577 leaves no catalog write bits. -/
+theorem catalog_strip_clears (m : AclMode) :
+    (if (m &&& catalogWriteBits != 0) = true then m &&& ~~~catalogWriteBits else m)
+      &&& catalogWriteBits = 0 := by
+  by_cases hc : (m &&& catalogWriteBits != 0) = true
+  · simp only [hc, ite_true]
+    bv_decide
+  · simp only [hc, Bool.false_eq_true, ite_false]
+    simp at hc
+    exact hc
 
 /-- **Catalog write protection**: whatever the hook returns, a non-superuser
     never gets INSERT/UPDATE/DELETE/TRUNCATE/USAGE on a system catalog that is
@@ -115,7 +138,10 @@ theorem pgClass_catalog_write_protected (e : Env) (he : e.WellFormed)
     (hsys : r.isSystem = true) (hview : r.isView = false) (hsu : e.superuser role = false)
     (m : AclMode) (h : How) :
     (pgClassAclmask e t role m h).1 &&& catalogWriteBits = 0 := by
-  sorry
+  unfold pgClassAclmask
+  rw [hrow]
+  simp only [hsys, hview, hsu, Bool.false_eq_true, ite_false, Bool.and_true, Bool.not_false]
+  exact hookBlock_no_new_write_bits e he _ role h _ _ (catalog_strip_clears m)
 
 /-- A column with no column-level ACL never reaches Cedar (finding: Cedar
     `Column` policies only matter for columns that already have a GRANT). -/
@@ -123,12 +149,20 @@ theorem pgAttribute_no_acl_never_asks (e : Env) (t : Oid) (a : Nat) (row : AttRo
     (hrow : e.cat.attRow t a = some row) (hnull : row.aclNull = true)
     (role : Oid) (m : AclMode) (h : How) :
     pgAttributeAclmask e t a role m h = (0, none) := by
-  sorry
+  unfold pgAttributeAclmask
+  rw [hrow]
+  dsimp only
+  split <;> simp_all
 
 /-- The type hook is asked about the original OID, not the one whose ACL was used. -/
 theorem pgType_hook_sees_original_oid (e : Env) (typ role : Oid) (m : AclMode) (h : How)
     (i : AuthInfo) (hc : (pgTypeAclmask e typ role m h).2 = some i) :
     i.objectid = typ := by
-  sorry
+  unfold pgTypeAclmask at hc
+  split at hc
+  · simp at hc
+  · split at hc
+    · simp at hc
+    · rw [hookBlock_info e _ i _ _ _ hc]
 
 end Arcade.Aclchk

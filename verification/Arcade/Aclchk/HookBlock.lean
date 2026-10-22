@@ -32,29 +32,61 @@ def hookBlock (e : Env) (info : AuthInfo) (result mask : AclMode) (how : How) :
 /-- **Additive**: native bits are never removed. -/
 theorem hookBlock_additive (e : Env) (info : AuthInfo) (result mask : AclMode) (how : How) :
     (hookBlock e info result mask how).1 &&& result = result := by
-  sorry
+  unfold hookBlock
+  split
+  · dsimp only
+    bv_decide
+  · split
+    · dsimp only
+      bv_decide
+    · dsimp only
+      split <;> bv_decide
 
 /-- **Sound**: nothing outside `result ∪ mask` is ever granted. -/
 theorem hookBlock_sound (e : Env) (info : AuthInfo) (result mask : AclMode) (how : How) :
     (hookBlock e info result mask how).1 &&& ~~~(result ||| mask) = 0 := by
-  sorry
+  unfold hookBlock
+  split
+  · dsimp only
+    bv_decide
+  · split
+    · dsimp only
+      bv_decide
+    · dsimp only
+      split <;> bv_decide
 
 /-- **Fail-closed**: any answer other than GRANT leaves `result` unchanged. -/
 theorem hookBlock_fail_closed (e : Env) (h : AuthInfo → HookResult) (he : e.hook = some h)
     (info : AuthInfo) (result mask : AclMode) (how : How) (hng : h info ≠ .grant) :
     (hookBlock e info result mask how).1 = result := by
-  sorry
+  unfold hookBlock
+  rw [he]
+  dsimp only
+  split            -- also uses hng to drop the GRANT branch
+  · rfl
+  · simp
 
 /-- **Post-denial**: the hook is called exactly when it is installed and native
     authorization was insufficient. -/
 theorem hookBlock_called_iff (e : Env) (info : AuthInfo) (result mask : AclMode) (how : How) :
     (hookBlock e info result mask how).2.isSome ↔
       (e.hook.isSome ∧ sufficient result mask how = false) := by
-  sorry
+  unfold hookBlock
+  cases hh : e.hook with
+  | none => simp
+  | some h =>
+    dsimp only
+    split <;> simp_all
 
 /-- **Scope**: if the hook is called, it is called with exactly the given `info`. -/
 theorem hookBlock_info (e : Env) (info i : AuthInfo) (result mask : AclMode) (how : How)
     (hc : (hookBlock e info result mask how).2 = some i) : i = info := by
-  sorry
+  unfold hookBlock at hc
+  split at hc
+  · simp at hc
+  · split at hc
+    · simp at hc
+    · simp at hc
+      exact hc.symm
 
 end Arcade.Aclchk
