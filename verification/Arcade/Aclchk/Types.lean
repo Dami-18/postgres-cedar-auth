@@ -54,7 +54,7 @@ structure AuthInfo where
   roleid   : Oid
   classid  : ClassId
   objectid : Oid
-  subid    : Nat
+  subid    : Int        -- C `int`; negative for system columns
   required : AclMode
   deriving DecidableEq, Repr
 
@@ -62,7 +62,7 @@ structure AuthInfo where
 structure AclKey where
   classid  : ClassId
   objectid : Oid
-  subid    : Nat
+  subid    : Int
   deriving DecidableEq, Repr
 
 /-- The pg_class fields `pg_class_aclmask_ext` reads. -/
@@ -80,13 +80,17 @@ structure AttRow where
 /-- Syscache lookups. `none` / `false` = tuple not found. -/
 structure Catalog where
   classRow    : Oid → Option ClassRow
-  attRow      : Oid → Nat → Option AttRow
+  attRow      : Oid → Int → Option AttRow
   nspFound    : Oid → Bool
   isTempNsp   : Oid → Bool
   /-- OID whose ACL a type uses after following array element / multirange
       range types (aclchk.c:4075–4126); `none` if a lookup fails. -/
   typeAclOid  : Oid → Option Oid
   objFound    : ClassId → Oid → Bool
+  /-- pg_authid.rolname via SearchSysCache1(AUTHOID); `none` if not found. -/
+  roleName    : Oid → Option String
+  /-- get_database_name(); `none` (NULL) if not found. -/
+  dbName      : Oid → Option String
 
 /-- Everything the patched functions call but we do not model. -/
 structure Env where

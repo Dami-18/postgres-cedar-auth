@@ -38,7 +38,7 @@ def pgClassAclmask (e : Env) (table role : Oid) (mask : AclMode) (how : How) :
       hookBlock e ⟨role, .relation, table, 0, mask⟩ result mask how      -- 3655–3690
 
 /-- `pg_attribute_aclmask_ext` (aclchk.c:3371–3517). No superuser check here. -/
-def pgAttributeAclmask (e : Env) (table : Oid) (attnum : Nat) (role : Oid)
+def pgAttributeAclmask (e : Env) (table : Oid) (attnum : Int) (role : Oid)
     (mask : AclMode) (how : How) : AclMode × Option AuthInfo :=
   match e.cat.attRow table attnum with
   | none => (0, none)                                                    -- 3387–3397
@@ -145,7 +145,7 @@ theorem pgClass_catalog_write_protected (e : Env) (he : e.WellFormed)
 
 /-- A column with no column-level ACL never reaches Cedar (finding: Cedar
     `Column` policies only matter for columns that already have a GRANT). -/
-theorem pgAttribute_no_acl_never_asks (e : Env) (t : Oid) (a : Nat) (row : AttRow)
+theorem pgAttribute_no_acl_never_asks (e : Env) (t : Oid) (a : Int) (row : AttRow)
     (hrow : e.cat.attRow t a = some row) (hnull : row.aclNull = true)
     (role : Oid) (m : AclMode) (h : How) :
     pgAttributeAclmask e t a role m h = (0, none) := by
