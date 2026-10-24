@@ -28,6 +28,7 @@ Toolchain: Lean 4.35.0 (pinned in `lean-toolchain`). No external dependencies.
 | `Arcade/Plugin/ContextCache.lean` | concrete run: cached decision reused across client IPs | `pg_authorization.c` 109–115 |
 | `Arcade/Plugin/Race.lean` | state machine: in-flight request vs. policy change + reset | `pg_authorization.c` 1095–1100, 1265, 1353 |
 | `Arcade/Plugin/Sync.lean` | entity sync from `object_access_hook` / `ProcessUtility_hook` | `pg_authorization.c` 602–805, 1121–1260 |
+| `Arcade/Plugin/Security.lean` | whole-system property `Secure`; the plugin as written violates it; a fixed plugin satisfies it and still grants | all of the above |
 
 ## Assumptions
 
@@ -36,6 +37,11 @@ Toolchain: Lean 4.35.0 (pinned in `lean-toolchain`). No external dependencies.
   `pgClass_catalog_write_protected`, `grant_option_reported_for_everyone`) also depend on a `_native.bv_decide` axiom:
   the SAT certificate is checked by compiled code, so they trust the Lean
   compiler. Check with `#print axioms <theorem>`.
+
+* `Security.lean`: Cedar's decision is a `Policy` (one answer per request); the
+  agent is `Faithful` (prints that answer as the mock agent's JSON, or fails).
+  `fixed_secure` assumes `ParserCorrect` for the JSON parser of the fix;
+  `parseDecision_correct` shows a parser meeting it exists.
 
 ## Abstractions
 
@@ -103,4 +109,7 @@ Toolchain: Lean 4.35.0 (pinned in `lean-toolchain`). No external dependencies.
 | `cacheSound_of_noServable`, `withCedar_hookBlock`, `grant_option_reported_for_everyone` | Plugin/System | proved |
 | `cedar_denies_outside`, `first_asks_and_grants`, `second_granted_from_cache` | Plugin/ContextCache | proved |
 | `stale_grant_served`, `fixed_same_trace`, `inv_init`, `mem_insertEntry`, `inv_step`, `inv_run`, `fixed_never_stale` | Plugin/Race | proved |
+| `Secure.pgClass`, `original_not_secure`, `bitLoop_allow_all`, `mapHttp_denyAllowReason`, `allow_reason_not_secure` | Plugin/Security | proved |
+| `parseDecision_correct`, `parseDecision_denyAllowReason`, `mapHttpFixed_faithful`, `bitLoopFixed_grant`, `fixed_secure`, `fixed_secure_fresh` | Plugin/Security | proved |
+| `bitLoopFixed_complete`, `fixed_complete` | Plugin/Security | proved |
 | `create_table_upserts`, `drop_table_deletes`, `index_not_synced`, `sync_disabled`, `sync_resets_cache`, `upsert_has_no_attributes`, `rename_resyncs_old_name`, `upsert_skips_tls_config`, `create_role_synced_once` | Plugin/Sync | proved |

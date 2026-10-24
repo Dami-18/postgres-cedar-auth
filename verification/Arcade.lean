@@ -10,3 +10,4 @@ import Arcade.Plugin.System
 import Arcade.Plugin.ContextCache
 import Arcade.Plugin.Race
 import Arcade.Plugin.Sync
+import Arcade.Plugin.Security
